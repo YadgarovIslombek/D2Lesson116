@@ -22,9 +22,10 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(binding.root)
         binding.buttonLoad.setOnClickListener {
-            lifecycleScope.launch {
-                loadData()
-            }
+//            lifecycleScope.launch {
+//                loadData()
+//            }
+            loadDataWithoutCoroutine()
         }
     }
 
@@ -32,13 +33,43 @@ class MainActivity : AppCompatActivity() {
         Log.d("TAG", "Load started: $this")
         binding.progress.isVisible = true
         binding.buttonLoad.isEnabled = false
-        val city = loadCity()
+        val city = loadCity() //1
+
         binding.tvLocation.text = city
-        val temp = loadTemp(city)
+        val temp = loadTemp(city) //2
+
         binding.tvTemperature.text = temp.toString()
         binding.progress.isVisible = false
         binding.buttonLoad.isEnabled = true
-        Log.d("TAG", "Load finished: $this")
+        Log.d("TAG", "Load finished: $this") // 3
+    }
+
+    private fun loadDataWithoutCoroutine(step: Int = 0, obj: Any? = null) {
+        when (step) {
+            0 -> {
+                Log.d("TAG", "Load started: $this")
+                binding.progress.isVisible = true
+                binding.buttonLoad.isEnabled = false
+                loadCityWithoutCorountine {
+                    loadDataWithoutCoroutine(1, it)
+                }
+            }
+
+            1 -> {
+                val city = obj as String
+                binding.tvLocation.text = city
+                loadTempWithoutCoroutine(city){
+                    loadDataWithoutCoroutine(2,it)
+                }
+            }
+            2->{
+                val temp = obj as Int
+                binding.tvTemperature.text = temp.toString()
+                binding.progress.isVisible = false
+                binding.buttonLoad.isEnabled = true
+                Log.d("TAG", "Load finished: $this") // 3
+            }
+        }
     }
 
     private suspend fun loadTemp(city: String): Int {
@@ -47,8 +78,24 @@ class MainActivity : AppCompatActivity() {
             .show()
         return 17
     }
+
+    private fun loadTempWithoutCoroutine(city: String, callback: (Int) -> Unit) {
+        Toast.makeText(this, "Loading temperature for city $city", Toast.LENGTH_SHORT)
+            .show()
+        Handler(Looper.getMainLooper()).postDelayed({
+            callback.invoke(17)
+        },5000)
+    }
+
     private suspend fun loadCity(): String {
         delay(5000)
         return "Urgench"
+    }
+
+    private fun loadCityWithoutCorountine(callback: (String) -> Unit) {
+        Handler(Looper.getMainLooper()).postDelayed({
+            callback.invoke("Urgench")
+        }, 5000)
+
     }
 }
